@@ -1,16 +1,144 @@
-version: '2.0'
+version: '3.8'
+
 services:
+  # سرویس اصلی پروکسی MTProto
   mtprotoproxy:
-    build: .
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: mtprotoproxy_main
     restart: unless-stopped
+    
+    # تنظیمات شبکه برای performance بهتر
     network_mode: "host"
+    
+    # Mount کردن فایل‌های configuration
     volumes:
-        - ./config.py:/home/tgproxy/config.py
-        - ./mtprotoproxy.py:/home/tgproxy/mtprotoproxy.py
-        - /etc/localtime:/etc/localtime:ro
+      - ./config.py:/home/tgproxy/config.py:ro
+      - ./mtprotoproxy.py:/home/tgproxy/mtprotoproxy.py:ro
+      - ./pyaes:/home/tgproxy/pyaes:ro
+      - /etc/localtime:/etc/localtime:ro
+      - proxy_logs:/home/tgproxy/logs
+      - proxy_data:/home/tgproxy/data
+    
+    # متغیرهای محیطی برای بهینه‌سازی
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONIOENCODING=UTF-8
+      - LANG=C.UTF-8
+      - LC_ALL=C.UTF-8
+    
+    # محدودیت‌های منابع برای stability
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+    
+    # تنظیمات logging بهینه شده
     logging:
-        driver: "json-file"
-        options:
-            max-file: "10"
-            max-size: "10m"
-#    mem_limit: 1024m
+      driver: "json-file"
+      options:
+        max-file: "5"
+        max-size: "50m"
+        compress: "true"
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import socket; s=socket.socket(); s.settimeout(5); s.connect(('127.0.0.1', 443)); s.close()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    
+    # Security options
+    security_opt:
+      - no-new-privileges:true
+    
+    # تنظیمات ulimit برای performance
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+      nproc:
+        soft: 32768
+        hard: 32768
+
+  # سرویس مانیتورینگ Prometheus (اختیاری)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: mtprotoproxy_prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.enable-lifecycle'
+    depends_on:
+      - mtprotoproxy
+    profiles:
+      - monitoring
+
+  # سرویس Grafana برای visualization (اختیاری)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: mtprotoproxy_grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+    depends_on:
+      - prometheus
+    profiles:
+      - monitoring
+
+  # سرویس Nginx برای load balancing (اختیاری)
+  nginx:
+    image: nginx:alpine
+    container_name: mtprotoproxy_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "8443:8443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - mtprotoproxy
+    profiles:
+      - loadbalancer
+
+# تعریف volumes برای persistent data
+volumes:
+  proxy_logs:
+    driver: local
+  proxy_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+# تعریف networks (در صورت نیاز)
+networks:
+  default:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

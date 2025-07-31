@@ -1,42 +1,48 @@
 # -----------------------------
-# تنظیمات اصلی پروکسی MTProto
+# تنظیمات اصلی پروکسی MTProto - بهینه شده برای سرعت و امنیت
 # هر گزینه با توضیح فارسی و مقدار پیش‌فرض آمده است
 # برای فعال‌سازی هر گزینه، مقدار آن را تغییر دهید
 # -----------------------------
 
-PORT = 443  # پورت سرور پروکسی
+PORT = 443  # پورت سرور پروکسی (443 برای جلوگیری از فیلترینگ)
 
 # نام کاربر -> سکرت (۳۲ کاراکتر هگزادسیمال)
+# چندین کاربر برای توزیع بار و امنیت بیشتر
 USERS = {
-    "tg": "e4b7c2a1f9d8e6b5c3a2f1e0d9c8b7a6"
+    "tg": "e4b7c2a1f9d8e6b5c3a2f1e0d9c8b7a6",
+    "user1": "a1b2c3d4e5f6789012345678901234ab",
+    "user2": "b2c3d4e5f6789012345678901234abcd",
+    "backup": "c3d4e5f6789012345678901234abcdef"
 }
 
-# حالت‌های مختلف پروکسی
+# حالت‌های مختلف پروکسی - TLS برای بهترین امنیت
 MODES = {
     "classic": False,  # حالت کلاسیک (قابل شناسایی)
     "secure": False,   # حالت امن (سخت‌تر برای شناسایی)
-    "tls": True        # حالت TLS (سخت‌ترین برای شناسایی)
+    "tls": True        # حالت TLS (سخت‌ترین برای شناسایی) - فعال
 }
 
 # دامنه برای حالت TLS (کلاینت‌های بد به این دامنه هدایت می‌شوند)
-TLS_DOMAIN = "www.google.com"
+# از سرویس‌های محبوب استفاده می‌کنیم تا طبیعی‌تر باشد
+TLS_DOMAIN = "www.microsoft.com"
 
 # تگ تبلیغاتی (از @MTProxybot دریافت کنید)
+# این تگ باید از بات رسمی تلگرام دریافت شود
 AD_TAG = "f80245e25d5d89fb6458bf1bfc697572"  # مقدار را با تگ دریافتی جایگزین کنید
 
-# استفاده از پروکسی میانی (برای تبلیغات)
-USE_MIDDLE_PROXY = False  # اگر AD_TAG ست شده باشد، True شود
+# استفاده از پروکسی میانی (برای تبلیغات) - فعال برای درآمدزایی
+USE_MIDDLE_PROXY = True  # اگر AD_TAG ست شده باشد، True شود
 
-# ترجیح استفاده از IPv6
+# ترجیح استفاده از IPv6 - غیرفعال برای سازگاری بیشتر
 PREFER_IPV6 = False
 
-# فعال‌سازی حالت سریع (امنیت کمتر، سرعت بیشتر)
+# فعال‌سازی حالت سریع (امنیت کمتر، سرعت بیشتر) - فعال برای سرعت
 FAST_MODE = True
 
 # فعال‌سازی پذیرش فقط با پروتکل پراکسی (برای nginx/haproxy)
 PROXY_PROTOCOL = False
 
-# فعال‌سازی ماسک کردن کلاینت‌های بد
+# فعال‌سازی ماسک کردن کلاینت‌های بد - فعال برای امنیت
 MASK = True
 
 # دامنه مقصد برای کلاینت‌های بد
@@ -46,62 +52,75 @@ MASK_HOST = TLS_DOMAIN
 MASK_PORT = 443
 
 # دامنه خانگی (برای نمایش در لاگ)
-MY_DOMAIN = False
+MY_DOMAIN = "your-domain.com"  # دامنه خود را وارد کنید
 
-# پراکسی بالادستی SOCKS5
+# پراکسی بالادستی SOCKS5 - در صورت نیاز
 SOCKS5_HOST = None
 SOCKS5_PORT = None
 SOCKS5_USER = None
 SOCKS5_PASS = None
 
 # محدودیت تعداد اتصال همزمان هر کاربر (نام کاربر -> تعداد)
-USER_MAX_TCP_CONNS = {}
+# محدودیت معقول برای جلوگیری از سوء استفاده
+USER_MAX_TCP_CONNS = {
+    "tg": 50,
+    "user1": 30,
+    "user2": 30,
+    "backup": 20
+}
 
 # تاریخ انقضای هر کاربر (نام کاربر -> رشته به فرمت روز/ماه/سال)
 USER_EXPIRATIONS = {}
 
 # سهمیه حجم داده هر کاربر (نام کاربر -> بایت)
-USER_DATA_QUOTA = {}
+# محدودیت ماهانه: 100GB برای کاربر اصلی، 50GB برای بقیه
+USER_DATA_QUOTA = {
+    "tg": 100 * 1024 * 1024 * 1024,      # 100GB
+    "user1": 50 * 1024 * 1024 * 1024,    # 50GB
+    "user2": 50 * 1024 * 1024 * 1024,    # 50GB
+    "backup": 30 * 1024 * 1024 * 1024    # 30GB
+}
 
 # طول لیست بررسی تکرار handshake (برای جلوگیری از حمله)
-REPLAY_CHECK_LEN = 65536
+# افزایش برای امنیت بیشتر
+REPLAY_CHECK_LEN = 131072  # افزایش یافته برای امنیت بهتر
 
 # نادیده گرفتن اختلاف ساعت کلاینت (کاهش امنیت)
 IGNORE_TIME_SKEW = False
 
-# تعداد آی‌پی‌های ذخیره شده کلاینت‌ها
-CLIENT_IPS_LEN = 131072
+# تعداد آی‌پی‌های ذخیره شده کلاینت‌ها - افزایش برای کارایی بهتر
+CLIENT_IPS_LEN = 262144  # دو برابر شده
 
-# فاصله زمانی چاپ آمار (ثانیه)
-STATS_PRINT_PERIOD = 600
+# فاصله زمانی چاپ آمار (ثانیه) - کاهش برای مانیتورینگ بهتر
+STATS_PRINT_PERIOD = 300  # هر 5 دقیقه
 
 # فاصله زمانی بروزرسانی اطلاعات پروکسی میانی (ثانیه)
-PROXY_INFO_UPDATE_PERIOD = 24*60*60
+PROXY_INFO_UPDATE_PERIOD = 12*60*60  # هر 12 ساعت
 
 # فاصله زمانی دریافت ساعت سرور تلگرام (ثانیه)
-GET_TIME_PERIOD = 10*60
+GET_TIME_PERIOD = 5*60  # هر 5 دقیقه
 
 # فاصله زمانی دریافت طول گواهی ماسک‌هاست (ثانیه)
 import random
-GET_CERT_LEN_PERIOD = random.randrange(4*60*60, 6*60*60)
+GET_CERT_LEN_PERIOD = random.randrange(2*60*60, 4*60*60)  # بین 2 تا 4 ساعت
 
-# سایز بافر سوکت به سمت کلاینت (عدد یا تاپل)
-TO_CLT_BUFSIZE = (16384, 100, 131072)
+# سایز بافر سوکت به سمت کلاینت (عدد یا تاپل) - بهینه‌سازی برای سرعت
+TO_CLT_BUFSIZE = (32768, 200, 262144)  # افزایش برای سرعت بیشتر
 
-# سایز بافر سوکت به سمت تلگرام
-TO_TG_BUFSIZE = 65536
+# سایز بافر سوکت به سمت تلگرام - افزایش برای throughput بهتر
+TO_TG_BUFSIZE = 131072  # دو برابر شده
 
-# مدت keepalive کلاینت (ثانیه)
-CLIENT_KEEPALIVE = 10*60
+# مدت keepalive کلاینت (ثانیه) - کاهش برای آزادسازی منابع سریع‌تر
+CLIENT_KEEPALIVE = 5*60  # 5 دقیقه
 
-# تایم‌اوت handshake کلاینت (ثانیه)
-CLIENT_HANDSHAKE_TIMEOUT = random.randrange(5, 15)
+# تایم‌اوت handshake کلاینت (ثانیه) - کاهش برای پاسخ سریع‌تر
+CLIENT_HANDSHAKE_TIMEOUT = random.randrange(3, 8)  # کمتر شده
 
 # تایم‌اوت تایید کلاینت (ثانیه)
-CLIENT_ACK_TIMEOUT = 5*60
+CLIENT_ACK_TIMEOUT = 3*60  # کاهش یافته
 
-# تایم‌اوت اتصال به تلگرام (ثانیه)
-TG_CONNECT_TIMEOUT = 10
+# تایم‌اوت اتصال به تلگرام (ثانیه) - کاهش برای پاسخ سریع‌تر
+TG_CONNECT_TIMEOUT = 5  # کاهش یافته
 
 # آدرس گوش دادن سرور (IPv4)
 LISTEN_ADDR_IPV4 = "0.0.0.0"
@@ -112,23 +131,43 @@ LISTEN_ADDR_IPV6 = "::"
 # آدرس یونیکس برای گوش دادن (در صورت نیاز)
 LISTEN_UNIX_SOCK = ""
 
-# پورت Prometheus برای مانیتورینگ
-METRICS_PORT = None
+# پورت Prometheus برای مانیتورینگ - فعال‌سازی
+METRICS_PORT = 8080  # فعال شده برای مانیتورینگ
 
 # آدرس گوش دادن Prometheus (IPv4)
-METRICS_LISTEN_ADDR_IPV4 = "0.0.0.0"
+METRICS_LISTEN_ADDR_IPV4 = "127.0.0.1"  # فقط localhost برای امنیت
 
 # آدرس گوش دادن Prometheus (IPv6)
 METRICS_LISTEN_ADDR_IPV6 = None
 
 # لیست آی‌پی‌های مجاز برای Prometheus
-METRICS_WHITELIST = ["127.0.0.1", "::1"]
+METRICS_WHITELIST = ["127.0.0.1", "::1", "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]
 
 # فعال‌سازی خروجی لینک پروکسی در Prometheus
-METRICS_EXPORT_LINKS = False
+METRICS_EXPORT_LINKS = True  # فعال برای مانیتورینگ بهتر
 
 # پیشوند پیش‌فرض برای متریک‌ها
 METRICS_PREFIX = "mtprotoproxy_"
+
+# تنظیمات اضافی برای بهینه‌سازی
+# -----------------------------
+
+# فعال‌سازی compression برای کاهش مصرف پهنای باند
+ENABLE_COMPRESSION = True
+
+# تعداد worker thread ها - بر اساس تعداد CPU core ها
+import os
+WORKER_THREADS = os.cpu_count() * 2 if os.cpu_count() else 4
+
+# تنظیمات TCP socket optimization
+TCP_NODELAY = True  # غیرفعال کردن Nagle's algorithm برای latency کمتر
+TCP_KEEPALIVE = True  # فعال‌سازی TCP keepalive
+
+# حداکثر تعداد اتصالات همزمان
+MAX_CONNECTIONS = 10000
+
+# تنظیمات memory pool برای بهینه‌سازی حافظه
+MEMORY_POOL_SIZE = 1024 * 1024 * 100  # 100MB pool
 
 # -----------------------------
 # پایان تنظیمات
